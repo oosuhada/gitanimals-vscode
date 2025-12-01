@@ -15,6 +15,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:gitanimals.openFarm",
     "onCommand:gitanimals.refresh"
   ],
