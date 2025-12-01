@@ -4,6 +4,10 @@
   "description": "View your GitAnimals farm and contribution line inside VS Code.",
   "version": "0.0.1",
   "publisher": "oosuhada",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oosuhada/gitanimals-vscode.git"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
