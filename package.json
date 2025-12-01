@@ -1,0 +1,60 @@
+{
+  "name": "gitanimals-vscode",
+  "displayName": "GitAnimals for VS Code",
+  "description": "View your GitAnimals farm and contribution line inside VS Code.",
+  "version": "0.0.1",
+  "publisher": "oosuhada",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:gitanimals.openFarm",
+    "onCommand:gitanimals.refresh"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gitanimals.openFarm",
+        "title": "GitAnimals: Open Farm"
+      },
+      {
+        "command": "gitanimals.refresh",
+        "title": "GitAnimals: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "GitAnimals",
+      "properties": {
+        "gitanimals.username": {
+          "type": "string",
+          "default": "oosuhada",
+          "description": "GitAnimals GitHub username"
+        },
+        "gitanimals.viewMode": {
+          "type": "string",
+          "enum": [
+            "farm",
+            "line",
+            "both"
+          ],
+          "default": "both",
+          "description": "Which GitAnimals views to show in the webview."
+        },
+        "gitanimals.autoRefreshIntervalMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "description": "Auto refresh interval for the GitAnimals webview in minutes."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run lint",
+    "lint": "node -e \"console.log('No lint configured')\""
+  }
+}
