@@ -634,17 +634,28 @@ async function getGitAnimalsMarkup(kind, username, variant) {
 }
 
 function transformGitAnimalsSvg(svg) {
-  const theme = getThemeTokens();
   let transformed = svg
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/\son[a-z]+="[^"]*"/gi, '');
 
   transformed = transformed.replace(
     /<rect x="0\.5" y="0\.5" width="599" height="299" rx="4\.5" fill="white"\/>/,
-    `<rect x="0" y="0" width="600" height="300" rx="10" fill="${theme.surface}" fill-opacity="${theme.surfaceOpacity}" />`
+    '<rect id="gitanimals-background" x="0" y="0" width="600" height="300" rx="0" />'
+  );
+
+  transformed = transformed.replace(
+    /<rect x="0\.5" y="0\.5" width="599" height="299" rx="4\.5" stroke="#D9D9D9" fill="none"\/>/g,
+    ''
   );
 
   const textOverride = `<style>
+    #gitanimals-background {
+      fill: var(--vscode-sideBar-background, var(--vscode-editor-background));
+    }
+    #username path,
+    #username rect,
+    #commit path,
+    #commit rect,
     [id^="username"] path,
     [id^="username"] rect,
     [id^="contributions"] path,
@@ -653,32 +664,11 @@ function transformGitAnimalsSvg(svg) {
     [id^="level-tag"] rect,
     [id^="level-wrap"] path,
     [id^="level-wrap"] rect {
-      fill: ${theme.ink} !important;
+      fill: var(--vscode-editor-foreground) !important;
     }
   </style>`;
 
   return transformed.replace(/<svg\b([^>]*)>/, '<svg$1>' + textOverride);
-}
-
-function getThemeTokens() {
-  const kind = vscode.window.activeColorTheme.kind;
-  const isDark = kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
-
-  if (isDark) {
-    return {
-      surface: '#1f1f23',
-      surfaceOpacity: '0.72',
-      border: '#5f6368',
-      ink: '#ffffff'
-    };
-  }
-
-  return {
-    surface: '#f4f5f7',
-    surfaceOpacity: '0.68',
-    border: '#d6d9df',
-    ink: '#111111'
-  };
 }
 
 function fetchText(url) {
