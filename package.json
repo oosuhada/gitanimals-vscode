@@ -16,6 +16,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
+    "onCommand:gitanimals.showCompanion",
     "onCommand:gitanimals.openFarm",
     "onCommand:gitanimals.refresh",
     "onCommand:gitanimals.openSettings"
@@ -24,8 +25,14 @@
   "contributes": {
     "commands": [
       {
+        "command": "gitanimals.showCompanion",
+        "title": "GitAnimals: Show Companion",
+        "icon": "$(heart)"
+      },
+      {
         "command": "gitanimals.openFarm",
-        "title": "GitAnimals: Open Farm"
+        "title": "GitAnimals: Open Full View",
+        "icon": "$(open-preview)"
       },
       {
         "command": "gitanimals.refresh",
@@ -46,8 +53,18 @@
           "group": "navigation@1"
         },
         {
+          "command": "gitanimals.refresh",
+          "when": "webviewId == 'gitanimalsCompanion'",
+          "group": "navigation@1"
+        },
+        {
           "command": "gitanimals.openSettings",
           "when": "webviewId == 'gitanimals'",
+          "group": "navigation@2"
+        },
+        {
+          "command": "gitanimals.openSettings",
+          "when": "webviewId == 'gitanimalsCompanion'",
           "group": "navigation@2"
         }
       ]
