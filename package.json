@@ -18,6 +18,9 @@
     "onStartupFinished",
     "onView:gitanimalsView",
     "onCommand:gitanimals.showCompanion",
+    "onCommand:gitanimals.configure",
+    "onCommand:gitanimals.setViewModeFarm",
+    "onCommand:gitanimals.setViewModeLine",
     "onCommand:gitanimals.openFarm",
     "onCommand:gitanimals.refresh",
     "onCommand:gitanimals.minimize",
@@ -37,8 +40,23 @@
     "commands": [
       {
         "command": "gitanimals.showCompanion",
-        "title": "GitAnimals: Show Overlay",
+        "title": "GitAnimals: Show View",
         "icon": "$(heart)"
+      },
+      {
+        "command": "gitanimals.configure",
+        "title": "GitAnimals: Configure",
+        "icon": "$(settings)"
+      },
+      {
+        "command": "gitanimals.setViewModeFarm",
+        "title": "GitAnimals: Show Farm",
+        "icon": "$(symbol-method)"
+      },
+      {
+        "command": "gitanimals.setViewModeLine",
+        "title": "GitAnimals: Show Line",
+        "icon": "$(graph-line)"
       },
       {
         "command": "gitanimals.openFarm",
@@ -61,37 +79,7 @@
         "icon": "$(settings-gear)"
       }
     ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "gitanimals.refresh",
-          "when": "view == gitanimalsView",
-          "group": "navigation@1"
-        },
-        {
-          "command": "gitanimals.minimize",
-          "when": "view == gitanimalsView",
-          "group": "navigation@2"
-        },
-        {
-          "command": "gitanimals.openSettings",
-          "when": "view == gitanimalsView",
-          "group": "navigation@3"
-        }
-      ],
-      "webview/title": [
-        {
-          "command": "gitanimals.refresh",
-          "when": "webviewId == 'gitanimals'",
-          "group": "navigation@1"
-        },
-        {
-          "command": "gitanimals.openSettings",
-          "when": "webviewId == 'gitanimals'",
-          "group": "navigation@2"
-        }
-      ]
-    },
+    "menus": {},
     "configuration": {
       "title": "GitAnimals",
       "properties": {
@@ -104,11 +92,10 @@
           "type": "string",
           "enum": [
             "farm",
-            "line",
-            "both"
+            "line"
           ],
-          "default": "both",
-          "description": "Which GitAnimals views to show in the webview."
+          "default": "farm",
+          "description": "Which GitAnimals view to show."
         },
         "gitanimals.autoRefreshIntervalMinutes": {
           "type": "number",

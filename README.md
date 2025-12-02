@@ -9,16 +9,16 @@ VS Code does not expose an official API for arbitrary HTML overlays on top of an
 ## Usage
 
 1. Press `F5` to launch the Extension Development Host.
-2. Click `🐾 GitAnimals` in the Status Bar to focus the GitAnimals Explorer view.
+2. Click `🐾 GitAnimals` in the Status Bar to choose Farm or Line, refresh, hide, show, or open settings.
 3. Run `GitAnimals: Open Full View` from the Command Palette for a larger farm view.
-4. Use `Refresh`, `Minimize`, `Open`, and `Settings` from the overlay toolbar.
+4. The Explorer view renders only the selected GitAnimals image without in-view controls.
 
 ## Settings
 
 ```jsonc
 {
   "gitanimals.username": "oosuhada",
-  "gitanimals.viewMode": "both",
+  "gitanimals.viewMode": "farm",
   "gitanimals.autoRefreshIntervalMinutes": 10
 }
 ```

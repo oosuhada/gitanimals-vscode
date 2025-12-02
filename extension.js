@@ -13,6 +13,18 @@ function activate(context) {
     gitanimalsViewProvider.show();
   });
 
+  const configureCommand = vscode.commands.registerCommand('gitanimals.configure', () => {
+    showStatusBarMenu();
+  });
+
+  const setFarmCommand = vscode.commands.registerCommand('gitanimals.setViewModeFarm', () => {
+    setViewMode('farm');
+  });
+
+  const setLineCommand = vscode.commands.registerCommand('gitanimals.setViewModeLine', () => {
+    setViewMode('line');
+  });
+
   const openCommand = vscode.commands.registerCommand('gitanimals.openFarm', () => {
     openFarm(context);
   });
@@ -31,6 +43,7 @@ function activate(context) {
 
   const configurationWatcher = vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('gitanimals')) {
+      updateStatusBarItem();
       refreshWebview();
       resetAutoRefresh();
     }
@@ -41,14 +54,16 @@ function activate(context) {
   });
 
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-  statusBarItem.text = '🐾 GitAnimals';
-  statusBarItem.tooltip = createStatusBarTooltip();
-  statusBarItem.command = 'gitanimals.showCompanion';
+  statusBarItem.command = 'gitanimals.configure';
+  updateStatusBarItem();
   statusBarItem.show();
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('gitanimalsView', gitanimalsViewProvider),
     showCompanionCommand,
+    configureCommand,
+    setFarmCommand,
+    setLineCommand,
     openCommand,
     refreshCommand,
     minimizeCommand,
@@ -112,9 +127,72 @@ function createStatusBarTooltip() {
   tooltip.isTrusted = true;
   tooltip.supportHtml = false;
   tooltip.appendMarkdown('**GitAnimals**\n\n');
-  tooltip.appendMarkdown('Click to focus the GitAnimals view in Explorer. This does not open a new editor tab.\n\n');
-  tooltip.appendMarkdown('Commands: `GitAnimals: Show Overlay`, `GitAnimals: Open Full View`, `GitAnimals: Refresh`, `GitAnimals: Minimize`, `GitAnimals: Open Settings`.');
+  tooltip.appendMarkdown('Click to configure GitAnimals view mode, refresh, show, or open settings.\n\n');
+  tooltip.appendMarkdown('VS Code does not expose a custom right-click menu for extension status bar items, so this menu opens on click.');
   return tooltip;
+}
+
+function updateStatusBarItem() {
+  if (!statusBarItem) {
+    return;
+  }
+
+  const { viewMode } = getConfiguration();
+  statusBarItem.text = `🐾 GitAnimals: ${viewMode === 'farm' ? 'Farm' : 'Line'}`;
+  statusBarItem.tooltip = createStatusBarTooltip();
+}
+
+async function showStatusBarMenu() {
+  const { viewMode } = getConfiguration();
+  const choice = await vscode.window.showQuickPick(
+    [
+      {
+        label: viewMode === 'farm' ? '$(check) Show Farm' : 'Show Farm',
+        description: 'Only render the farm image',
+        command: 'gitanimals.setViewModeFarm'
+      },
+      {
+        label: viewMode === 'line' ? '$(check) Show Line' : 'Show Line',
+        description: 'Only render the line image',
+        command: 'gitanimals.setViewModeLine'
+      },
+      {
+        label: 'Refresh',
+        description: 'Reload GitAnimals image',
+        command: 'gitanimals.refresh'
+      },
+      {
+        label: 'Show GitAnimals View',
+        description: 'Focus the Explorer GitAnimals view',
+        command: 'gitanimals.showCompanion'
+      },
+      {
+        label: 'Hide GitAnimals View Content',
+        description: 'Minimize the Explorer GitAnimals view content',
+        command: 'gitanimals.minimize'
+      },
+      {
+        label: 'Open Extension Settings',
+        description: 'Edit GitAnimals settings',
+        command: 'gitanimals.openSettings'
+      }
+    ],
+    {
+      placeHolder: 'GitAnimals'
+    }
+  );
+
+  if (choice) {
+    await vscode.commands.executeCommand(choice.command);
+  }
+}
+
+async function setViewMode(viewMode) {
+  await vscode.workspace
+    .getConfiguration('gitanimals')
+    .update('viewMode', viewMode, vscode.ConfigurationTarget.Global);
+  updateStatusBarItem();
+  refreshWebview();
 }
 
 function resetAutoRefresh() {
@@ -172,9 +250,12 @@ class GitAnimalsViewProvider {
 
 function getConfiguration() {
   const config = vscode.workspace.getConfiguration('gitanimals');
+  const configuredViewMode = config.get('viewMode', 'farm') || 'farm';
+  const viewMode = configuredViewMode === 'line' ? 'line' : 'farm';
+
   return {
     username: config.get('username', 'oosuhada') || 'oosuhada',
-    viewMode: config.get('viewMode', 'both') || 'both',
+    viewMode,
     autoRefreshIntervalMinutes: Math.max(1, config.get('autoRefreshIntervalMinutes', 10) || 10)
   };
 }
@@ -190,11 +271,11 @@ async function getWebviewHtml() {
   const safeUsername = escapeHtml(username);
   const cards = [];
 
-  if (viewMode === 'farm' || viewMode === 'both') {
+  if (viewMode === 'farm') {
     cards.push(await createImageCard('Farm', 'farms', username));
   }
 
-  if (viewMode === 'line' || viewMode === 'both') {
+  if (viewMode === 'line') {
     cards.push(await createImageCard('Line', 'lines', username));
   }
 
@@ -404,10 +485,6 @@ async function getWebviewHtml() {
       </div>
       <div>
         <div class="hint">Auto refresh runs every ${autoRefreshIntervalMinutes} minute(s). Manual refresh redraws the images with cache busting.</div>
-        <nav class="actions" aria-label="GitAnimals actions">
-          <a class="action" href="command:gitanimals.refresh" title="Redraw GitAnimals images">Refresh Now</a>
-          <a class="action secondary" href="command:gitanimals.openSettings" title="Open GitAnimals settings">Settings</a>
-        </nav>
       </div>
     </header>
 
@@ -421,16 +498,9 @@ async function getWebviewHtml() {
 
 async function getCompanionHtml(minimized) {
   const { username, viewMode } = getConfiguration();
-  const safeUsername = escapeHtml(username);
-  const overlayImages = [];
-
-  if (viewMode === 'farm' || viewMode === 'both') {
-    overlayImages.push(await createOverlayImage('Farm', 'farms', username));
-  }
-
-  if (viewMode === 'line' || viewMode === 'both') {
-    overlayImages.push(await createOverlayImage('Line', 'lines', username));
-  }
+  const overlayImage = minimized
+    ? ''
+    : await createOverlayImage(viewMode === 'farm' ? 'farms' : 'lines', username);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -467,64 +537,33 @@ async function getCompanionHtml(minimized) {
 
     .overlay {
       position: fixed;
-      left: 18px;
-      bottom: 18px;
+      left: 0;
+      bottom: 0;
       z-index: 5;
-      width: min(520px, calc(100vw - 36px));
-      display: grid;
-      gap: 10px;
+      width: 100%;
     }
 
     .images {
       display: ${minimized ? 'none' : 'grid'};
-      gap: 12px;
     }
 
     figure {
       margin: 0;
-      display: grid;
-      gap: 5px;
-      padding: 10px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 12px;
-      background: rgba(244, 245, 247, 0.72);
-      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24);
-      backdrop-filter: blur(18px) saturate(1.25);
-    }
-
-    body.vscode-dark figure,
-    body.vscode-high-contrast figure {
-      background: rgba(31, 31, 35, 0.68);
-    }
-
-    .label {
-      width: max-content;
-      max-width: 100%;
-      border-radius: 4px;
-      padding: 3px 7px;
-      background: rgba(244, 245, 247, 0.82);
-      color: var(--vscode-descriptionForeground);
-      font-size: 11px;
-      line-height: 1.4;
-    }
-
-    body.vscode-dark .label,
-    body.vscode-high-contrast .label {
-      background: rgba(31, 31, 35, 0.82);
+      padding: 0;
+      border: 0;
+      background: transparent;
     }
 
     img {
       display: block;
-      max-width: min(500px, calc(100vw - 36px));
-      max-height: 38vh;
+      width: 100%;
+      height: auto;
       object-fit: contain;
       image-rendering: pixelated;
-      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.34));
     }
 
     .svg-wrap {
-      width: min(500px, calc(100vw - 58px));
-      max-height: 38vh;
+      width: 100%;
       overflow: hidden;
     }
 
@@ -532,65 +571,14 @@ async function getCompanionHtml(minimized) {
       display: block;
       width: 100%;
       height: auto;
-      max-height: 38vh;
-    }
-
-    .toolbar {
-      width: max-content;
-      max-width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      border: 1px solid var(--vscode-panel-border);
-      border-radius: 999px;
-      padding: 6px;
-      background: rgba(244, 245, 247, 0.88);
-      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
-    }
-
-    body.vscode-dark .toolbar,
-    body.vscode-high-contrast .toolbar {
-      background: rgba(31, 31, 35, 0.88);
-    }
-
-    .title {
-      padding: 0 6px 0 8px;
-      color: var(--vscode-descriptionForeground);
-      font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      padding: 0 9px;
-      background: transparent;
-      color: var(--vscode-editor-foreground);
-      text-decoration: none;
-      font-size: 12px;
-      line-height: 1;
-    }
-
-    .button:hover,
-    .button.primary {
-      background: var(--vscode-button-background);
-      color: var(--vscode-button-foreground);
+      max-height: 100vh;
     }
 
     @media (max-width: 520px) {
       .overlay {
-        left: 12px;
-        right: 12px;
-        bottom: 12px;
-        width: auto;
-      }
-
-      .title {
-        display: none;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
     }
   </style>
@@ -599,15 +587,8 @@ async function getCompanionHtml(minimized) {
   <main class="stage">
     <section class="overlay" aria-label="GitAnimals overlay">
       <div class="images">
-        ${overlayImages.join('\n        ')}
+        ${overlayImage}
       </div>
-      <nav class="toolbar" aria-label="GitAnimals actions">
-        <span class="title">@${safeUsername} · ${escapeHtml(viewMode)}</span>
-        <a class="button primary" href="command:gitanimals.refresh" title="Refresh">Refresh</a>
-        <a class="button" href="command:${minimized ? 'gitanimals.showCompanion' : 'gitanimals.minimize'}" title="${minimized ? 'Show' : 'Minimize'}">${minimized ? 'Show' : '_'}</a>
-        <a class="button" href="command:gitanimals.openFarm" title="Open full view">Open</a>
-        <a class="button" href="command:gitanimals.openSettings" title="Settings">Settings</a>
-      </nav>
     </section>
   </main>
 </body>
@@ -630,12 +611,10 @@ async function createImageCard(title, kind, username) {
 </article>`;
 }
 
-async function createOverlayImage(title, kind, username) {
-  const safeTitle = escapeHtml(title);
+async function createOverlayImage(kind, username) {
   const markup = await getGitAnimalsMarkup(kind, username, 'overlay');
 
   return `<figure>
-  <figcaption class="label">${safeTitle}</figcaption>
   ${markup}
 </figure>`;
 }
@@ -662,7 +641,7 @@ function transformGitAnimalsSvg(svg) {
 
   transformed = transformed.replace(
     /<rect x="0\.5" y="0\.5" width="599" height="299" rx="4\.5" fill="white"\/>/,
-    `<rect x="0.5" y="0.5" width="599" height="299" rx="10" fill="${theme.surface}" fill-opacity="${theme.surfaceOpacity}" stroke="${theme.border}" />`
+    `<rect x="0" y="0" width="600" height="300" rx="10" fill="${theme.surface}" fill-opacity="${theme.surfaceOpacity}" />`
   );
 
   const textOverride = `<style>
