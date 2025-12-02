@@ -19,6 +19,7 @@
     "onCommand:gitanimals.showCompanion",
     "onCommand:gitanimals.openFarm",
     "onCommand:gitanimals.refresh",
+    "onCommand:gitanimals.minimize",
     "onCommand:gitanimals.openSettings"
   ],
   "main": "./extension.js",
@@ -26,7 +27,7 @@
     "commands": [
       {
         "command": "gitanimals.showCompanion",
-        "title": "GitAnimals: Show Companion",
+        "title": "GitAnimals: Show Overlay",
         "icon": "$(heart)"
       },
       {
@@ -38,6 +39,11 @@
         "command": "gitanimals.refresh",
         "title": "GitAnimals: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "gitanimals.minimize",
+        "title": "GitAnimals: Minimize",
+        "icon": "$(chrome-minimize)"
       },
       {
         "command": "gitanimals.openSettings",
@@ -56,6 +62,11 @@
           "command": "gitanimals.refresh",
           "when": "webviewId == 'gitanimalsCompanion'",
           "group": "navigation@1"
+        },
+        {
+          "command": "gitanimals.minimize",
+          "when": "webviewId == 'gitanimalsCompanion'",
+          "group": "navigation@2"
         },
         {
           "command": "gitanimals.openSettings",
