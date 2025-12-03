@@ -5,8 +5,10 @@ let panel;
 let gitanimalsViewProvider;
 let statusBarItem;
 let refreshTimer;
+let extensionContext;
 
 function activate(context) {
+  extensionContext = context;
   gitanimalsViewProvider = new GitAnimalsViewProvider(context);
 
   const showCompanionCommand = vscode.commands.registerCommand('gitanimals.showCompanion', () => {
@@ -53,6 +55,14 @@ function activate(context) {
     refreshWebview();
   });
 
+  const windowStateWatcher = vscode.window.onDidChangeWindowState((state) => {
+    if (state.focused) {
+      setTimeout(() => {
+        refreshWebview();
+      }, 2500);
+    }
+  });
+
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.command = 'gitanimals.configure';
   updateStatusBarItem();
@@ -70,6 +80,7 @@ function activate(context) {
     openSettingsCommand,
     configurationWatcher,
     themeWatcher,
+    windowStateWatcher,
     statusBarItem
   );
   resetAutoRefresh();
@@ -450,6 +461,18 @@ async function getWebviewHtml() {
       border-radius: 6px;
     }
 
+    .placeholder {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 18px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 6px;
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-sideBar-background);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     figcaption {
       margin-top: 10px;
       font-size: 12px;
@@ -582,6 +605,16 @@ async function getCompanionHtml(minimized) {
       height: auto;
     }
 
+    .placeholder {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      color: var(--vscode-descriptionForeground);
+      background: var(--vscode-sideBar-background);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     .scale-fill-width .svg-wrap svg {
       width: 100%;
       max-width: none;
@@ -650,13 +683,43 @@ async function getGitAnimalsMarkup(kind, username, variant) {
 
   try {
     const svg = await fetchText(url);
+    await setCachedSvg(kind, username, svg);
     const themedSvg = transformGitAnimalsSvg(svg, getConfiguration());
     return `<div class="svg-wrap" role="img" aria-label="GitAnimals ${escapeHtml(kind)} image">${themedSvg}</div>`;
   } catch (error) {
-    const safeUrl = escapeHtml(url);
-    const className = variant === 'overlay' ? '' : ' class="fallback-image"';
-    return `<img${className} src="${safeUrl}" alt="GitAnimals ${escapeHtml(kind)} image">`;
+    const cachedSvg = getCachedSvg(kind, username);
+    if (cachedSvg) {
+      const themedSvg = transformGitAnimalsSvg(cachedSvg, getConfiguration());
+      return `<div class="svg-wrap" role="img" aria-label="GitAnimals ${escapeHtml(kind)} cached image">${themedSvg}</div>`;
+    }
+
+    return createUnavailableMarkup(kind, variant);
   }
+}
+
+function getCachedSvg(kind, username) {
+  if (!extensionContext) {
+    return undefined;
+  }
+
+  return extensionContext.globalState.get(getSvgCacheKey(kind, username));
+}
+
+async function setCachedSvg(kind, username, svg) {
+  if (!extensionContext || typeof svg !== 'string' || !svg.includes('<svg')) {
+    return;
+  }
+
+  await extensionContext.globalState.update(getSvgCacheKey(kind, username), svg);
+}
+
+function getSvgCacheKey(kind, username) {
+  return `gitanimals.svg.${kind}.${username}`;
+}
+
+function createUnavailableMarkup(kind, variant) {
+  const className = variant === 'overlay' ? 'placeholder overlay-placeholder' : 'placeholder';
+  return `<div class="${className}" role="status">GitAnimals ${escapeHtml(kind)} image is unavailable. Refresh after the network reconnects.</div>`;
 }
 
 function transformGitAnimalsSvg(svg, options) {
