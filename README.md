@@ -2,6 +2,14 @@
 
 GitAnimals for VS Code is a small independent extension that keeps your GitAnimals farm and contribution line close to your editor.
 
+## 왜 만들었나 / Why I built it
+
+VS Code에는 포켓몬이나 다마고치처럼 작은 캐릭터를 띄워두는 companion extension들이 있습니다. 그 감성 자체는 좋았지만, 나는 이미 GitHub contribution과 함께 키우고 있던 **GitAnimals**가 있었고 새 캐릭터보다 내가 실제로 관리하던 동물을 코딩할 때 보고 싶었습니다.
+
+그래서 GitAnimals farm과 contribution line을 VS Code 안에 직접 띄우는 extension을 만들었습니다. 코딩하면서 캐릭터를 보는 재미도 있고, contribution이 실시간으로 쌓이는 모습을 가까이 두면 작은 성취감도 바로 느낄 수 있다는 점이 마음에 들었습니다.
+
+I liked the idea of VS Code companion extensions, but instead of adding another virtual pet I wanted to keep the GitAnimals I was already growing through my GitHub activity. This extension brings that existing farm and contribution feedback into the editor so the companion actually reflects the coding work I am doing.
+
 The default GitHub username is `oosuhada`.
 
 VS Code does not expose an official API for arbitrary HTML overlays on top of an existing text editor. Like visual companion extensions, this extension uses an Explorer webview view and positions GitAnimals at the bottom-left inside that view without opening a new editor tab.
