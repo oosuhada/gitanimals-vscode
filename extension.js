@@ -271,7 +271,7 @@ function getConfiguration() {
   return {
     username: config.get('username', 'oosuhada') || 'oosuhada',
     viewMode,
-    usernameScale: clampNumber(config.get('usernameScale', 0.72), 0.3, 1.5, 0.72),
+    usernameScale: clampNumber(config.get('usernameScale', 0.62), 0.3, 1.5, 0.62),
     showUsername: config.get('showUsername', true) !== false,
     showContributions: config.get('showContributions', true) !== false,
     imageScaleMode,
@@ -562,9 +562,11 @@ async function getCompanionHtml(minimized) {
 
     .stage {
       box-sizing: border-box;
-      min-height: 100vh;
+      height: 100vh;
+      min-height: 0;
       position: relative;
       background: transparent;
+      overflow: hidden;
     }
 
     .overlay {
@@ -596,6 +598,10 @@ async function getCompanionHtml(minimized) {
 
     .svg-wrap {
       width: 100%;
+      height: 100vh;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
       overflow: hidden;
     }
 
@@ -603,6 +609,9 @@ async function getCompanionHtml(minimized) {
       display: block;
       width: 100%;
       height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      flex: 0 1 auto;
     }
 
     .placeholder {
@@ -616,21 +625,21 @@ async function getCompanionHtml(minimized) {
     }
 
     .scale-fill-width .svg-wrap svg {
-      width: 100%;
-      max-width: none;
-      max-height: none;
+      width: min(100%, calc(100vh * 2));
+      max-width: 100%;
+      max-height: 100%;
     }
 
     .scale-fit .svg-wrap svg {
-      width: 100%;
-      max-height: 100vh;
+      width: min(100%, calc(100vh * 2));
+      max-height: 100%;
       object-fit: contain;
     }
 
     .scale-fixed .svg-wrap svg {
-      width: 600px;
+      width: min(600px, 100%, calc(100vh * 2));
       max-width: 100%;
-      max-height: 100vh;
+      max-height: 100%;
     }
 
     @media (max-width: 520px) {
