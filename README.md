@@ -6,6 +6,17 @@ The default GitHub username is `oosuhada`.
 
 VS Code does not expose an official API for arbitrary HTML overlays on top of an existing text editor. Like visual companion extensions, this extension uses an Explorer webview view and positions GitAnimals at the bottom-left inside that view without opening a new editor tab.
 
+## 한국어 요약
+
+GitAnimals for VS Code는 GitHub 기여 기록을 캐릭터/농장 형태로 보여주는 GitAnimals 이미지를 **VS Code Explorer 안에서 바로 확인할 수 있게 만든 작은 확장 프로그램**입니다.
+
+- 새 editor tab을 열지 않고 Explorer webview에서 Farm/Line 이미지를 표시합니다.
+- Status Bar와 Command Palette에서 보기 방식, 새로고침, 숨김/표시, 설정을 제어합니다.
+- username, image scale, contribution label, 자동 새로고침 주기를 설정할 수 있습니다.
+- Dark/Light 실제 동작 화면을 아래 스크린샷으로 확인할 수 있습니다.
+
+VS Code가 기존 editor 위 임의 HTML overlay를 공식 지원하지 않기 때문에, 구현은 지원되는 Explorer webview API 범위 안에서 동작하도록 설계했습니다.
+
 ## Screenshots
 
 ### Dark Theme
