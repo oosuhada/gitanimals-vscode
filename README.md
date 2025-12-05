@@ -66,6 +66,16 @@ vsce package
 code --install-extension gitanimals-vscode-0.0.1.vsix
 ```
 
-## Topics
+## Architecture & Topics / 아키텍처 및 주제
 
-[`developer-tools`](https://github.com/topics/developer-tools) · [`gitanimals`](https://github.com/topics/gitanimals) · [`github`](https://github.com/topics/github) · [`javascript`](https://github.com/topics/javascript) · [`vscode-extension`](https://github.com/topics/vscode-extension) · [`webview`](https://github.com/topics/webview) · [`visual-studio-code`](https://github.com/topics/visual-studio-code) · [`extension`](https://github.com/topics/extension) · [`github-api`](https://github.com/topics/github-api) · [`productivity`](https://github.com/topics/productivity) · [`gamification`](https://github.com/topics/gamification) · [`open-source`](https://github.com/topics/open-source) · [`api-integration`](https://github.com/topics/api-integration) · [`coding`](https://github.com/topics/coding)
+**Architecture / 아키텍처**<br>
+[`extension-host-architecture`](https://github.com/topics/extension-host-architecture) · [`webview-architecture`](https://github.com/topics/webview-architecture) · [`message-passing`](https://github.com/topics/message-passing) · [`event-driven-ui`](https://github.com/topics/event-driven-ui) · [`api-adapter`](https://github.com/topics/api-adapter) · [`polling-strategy`](https://github.com/topics/polling-strategy) · [`cache-aside`](https://github.com/topics/cache-aside) · [`separation-of-concerns`](https://github.com/topics/separation-of-concerns)
+
+**Core technologies / 핵심 기술**<br>
+[`vscode-extension`](https://github.com/topics/vscode-extension) · [`github-api`](https://github.com/topics/github-api)
+
+**Project context / 프로젝트 맥락**<br>
+[`api-integration`](https://github.com/topics/api-integration) · [`coding`](https://github.com/topics/coding) · [`developer-tools`](https://github.com/topics/developer-tools) · [`extension`](https://github.com/topics/extension) · [`gamification`](https://github.com/topics/gamification) · [`gitanimals`](https://github.com/topics/gitanimals) · [`github`](https://github.com/topics/github) · [`open-source`](https://github.com/topics/open-source) · [`productivity`](https://github.com/topics/productivity) · [`visual-studio-code`](https://github.com/topics/visual-studio-code) · [`webview`](https://github.com/topics/webview)
+
+**Implementation stack / 구현 스택**<br>
+[`javascript`](https://github.com/topics/javascript)
