@@ -1,13 +1,16 @@
 const vscode = require('vscode');
+const https = require('https');
 
 let panel;
-let companionPanel;
+let gitanimalsViewProvider;
 let statusBarItem;
 let refreshTimer;
 
 function activate(context) {
+  gitanimalsViewProvider = new GitAnimalsViewProvider(context);
+
   const showCompanionCommand = vscode.commands.registerCommand('gitanimals.showCompanion', () => {
-    showCompanion(context);
+    gitanimalsViewProvider.show();
   });
 
   const openCommand = vscode.commands.registerCommand('gitanimals.openFarm', () => {
@@ -19,9 +22,7 @@ function activate(context) {
   });
 
   const minimizeCommand = vscode.commands.registerCommand('gitanimals.minimize', () => {
-    if (companionPanel) {
-      companionPanel.dispose();
-    }
+    gitanimalsViewProvider.minimize();
   });
 
   const openSettingsCommand = vscode.commands.registerCommand('gitanimals.openSettings', () => {
@@ -35,6 +36,10 @@ function activate(context) {
     }
   });
 
+  const themeWatcher = vscode.window.onDidChangeActiveColorTheme(() => {
+    refreshWebview();
+  });
+
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.text = '🐾 GitAnimals';
   statusBarItem.tooltip = createStatusBarTooltip();
@@ -42,12 +47,14 @@ function activate(context) {
   statusBarItem.show();
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('gitanimalsView', gitanimalsViewProvider),
     showCompanionCommand,
     openCommand,
     refreshCommand,
     minimizeCommand,
     openSettingsCommand,
     configurationWatcher,
+    themeWatcher,
     statusBarItem
   );
   resetAutoRefresh();
@@ -79,42 +86,25 @@ function openFarm(context) {
     panel = undefined;
   }, null, context.subscriptions);
 
-  refreshWebview();
-}
-
-function showCompanion(context) {
-  if (companionPanel) {
-    companionPanel.reveal(vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : vscode.ViewColumn.Active, true);
-    refreshWebview();
-    return;
-  }
-
-  companionPanel = vscode.window.createWebviewPanel(
-    'gitanimalsCompanion',
-    'GitAnimals Overlay',
-    vscode.window.activeTextEditor ? vscode.window.activeTextEditor.viewColumn : vscode.ViewColumn.Active,
-    {
-      enableScripts: false,
-      enableCommandUris: true,
-      retainContextWhenHidden: true
-    }
-  );
-
-  companionPanel.onDidDispose(() => {
-    companionPanel = undefined;
-  }, null, context.subscriptions);
-
-  refreshWebview();
+  renderFullPanel();
 }
 
 function refreshWebview() {
   if (panel) {
-    panel.webview.html = getWebviewHtml();
+    renderFullPanel();
   }
 
-  if (companionPanel) {
-    companionPanel.webview.html = getCompanionHtml();
+  if (gitanimalsViewProvider) {
+    gitanimalsViewProvider.refresh();
   }
+}
+
+async function renderFullPanel() {
+  if (!panel) {
+    return;
+  }
+
+  panel.webview.html = await getWebviewHtml();
 }
 
 function createStatusBarTooltip() {
@@ -122,7 +112,7 @@ function createStatusBarTooltip() {
   tooltip.isTrusted = true;
   tooltip.supportHtml = false;
   tooltip.appendMarkdown('**GitAnimals**\n\n');
-  tooltip.appendMarkdown('Click to show the GitAnimals overlay panel in the active editor group.\n\n');
+  tooltip.appendMarkdown('Click to focus the GitAnimals view in Explorer. This does not open a new editor tab.\n\n');
   tooltip.appendMarkdown('Commands: `GitAnimals: Show Overlay`, `GitAnimals: Open Full View`, `GitAnimals: Refresh`, `GitAnimals: Minimize`, `GitAnimals: Open Settings`.');
   return tooltip;
 }
@@ -143,6 +133,43 @@ function clearAutoRefresh() {
   }
 }
 
+class GitAnimalsViewProvider {
+  constructor(context) {
+    this.context = context;
+    this.view = undefined;
+    this.minimized = false;
+  }
+
+  async resolveWebviewView(webviewView) {
+    this.view = webviewView;
+    webviewView.webview.options = {
+      enableScripts: false,
+      enableCommandUris: true
+    };
+    await this.refresh();
+  }
+
+  async refresh() {
+    if (!this.view) {
+      return;
+    }
+
+    this.view.webview.html = await getCompanionHtml(this.minimized);
+  }
+
+  async show() {
+    this.minimized = false;
+    await vscode.commands.executeCommand('workbench.view.explorer');
+    await vscode.commands.executeCommand('gitanimalsView.focus');
+    await this.refresh();
+  }
+
+  async minimize() {
+    this.minimized = true;
+    await this.refresh();
+  }
+}
+
 function getConfiguration() {
   const config = vscode.workspace.getConfiguration('gitanimals');
   return {
@@ -158,17 +185,17 @@ function buildImageUrl(kind, username) {
   return url.toString();
 }
 
-function getWebviewHtml() {
+async function getWebviewHtml() {
   const { username, viewMode, autoRefreshIntervalMinutes } = getConfiguration();
   const safeUsername = escapeHtml(username);
   const cards = [];
 
   if (viewMode === 'farm' || viewMode === 'both') {
-    cards.push(createImageCard('Farm', buildImageUrl('farms', username)));
+    cards.push(await createImageCard('Farm', 'farms', username));
   }
 
   if (viewMode === 'line' || viewMode === 'both') {
-    cards.push(createImageCard('Line', buildImageUrl('lines', username)));
+    cards.push(await createImageCard('Line', 'lines', username));
   }
 
   return `<!DOCTYPE html>
@@ -327,6 +354,13 @@ function getWebviewHtml() {
       background: var(--vscode-editor-background);
     }
 
+    .svg-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+
     figcaption {
       margin-top: 10px;
       font-size: 12px;
@@ -385,17 +419,17 @@ function getWebviewHtml() {
 </html>`;
 }
 
-function getCompanionHtml() {
+async function getCompanionHtml(minimized) {
   const { username, viewMode } = getConfiguration();
   const safeUsername = escapeHtml(username);
   const overlayImages = [];
 
   if (viewMode === 'farm' || viewMode === 'both') {
-    overlayImages.push(createOverlayImage('Farm', buildImageUrl('farms', username)));
+    overlayImages.push(await createOverlayImage('Farm', 'farms', username));
   }
 
   if (viewMode === 'line' || viewMode === 'both') {
-    overlayImages.push(createOverlayImage('Line', buildImageUrl('lines', username)));
+    overlayImages.push(await createOverlayImage('Line', 'lines', username));
   }
 
   return `<!DOCTYPE html>
@@ -428,8 +462,7 @@ function getCompanionHtml() {
       box-sizing: border-box;
       min-height: 100vh;
       position: relative;
-      background:
-        linear-gradient(180deg, transparent 0%, transparent 52%, color-mix(in srgb, var(--vscode-editor-background) 76%, transparent) 100%);
+      background: transparent;
     }
 
     .overlay {
@@ -443,7 +476,7 @@ function getCompanionHtml() {
     }
 
     .images {
-      display: grid;
+      display: ${minimized ? 'none' : 'grid'};
       gap: 12px;
     }
 
@@ -451,6 +484,17 @@ function getCompanionHtml() {
       margin: 0;
       display: grid;
       gap: 5px;
+      padding: 10px;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 12px;
+      background: rgba(244, 245, 247, 0.72);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.24);
+      backdrop-filter: blur(18px) saturate(1.25);
+    }
+
+    body.vscode-dark figure,
+    body.vscode-high-contrast figure {
+      background: rgba(31, 31, 35, 0.68);
     }
 
     .label {
@@ -458,10 +502,15 @@ function getCompanionHtml() {
       max-width: 100%;
       border-radius: 4px;
       padding: 3px 7px;
-      background: color-mix(in srgb, var(--vscode-editor-background) 82%, transparent);
+      background: rgba(244, 245, 247, 0.82);
       color: var(--vscode-descriptionForeground);
       font-size: 11px;
       line-height: 1.4;
+    }
+
+    body.vscode-dark .label,
+    body.vscode-high-contrast .label {
+      background: rgba(31, 31, 35, 0.82);
     }
 
     img {
@@ -473,6 +522,19 @@ function getCompanionHtml() {
       filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.34));
     }
 
+    .svg-wrap {
+      width: min(500px, calc(100vw - 58px));
+      max-height: 38vh;
+      overflow: hidden;
+    }
+
+    .svg-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 38vh;
+    }
+
     .toolbar {
       width: max-content;
       max-width: 100%;
@@ -482,8 +544,13 @@ function getCompanionHtml() {
       border: 1px solid var(--vscode-panel-border);
       border-radius: 999px;
       padding: 6px;
-      background: color-mix(in srgb, var(--vscode-editor-background) 88%, transparent);
+      background: rgba(244, 245, 247, 0.88);
       box-shadow: 0 10px 32px rgba(0, 0, 0, 0.24);
+    }
+
+    body.vscode-dark .toolbar,
+    body.vscode-high-contrast .toolbar {
+      background: rgba(31, 31, 35, 0.88);
     }
 
     .title {
@@ -537,7 +604,7 @@ function getCompanionHtml() {
       <nav class="toolbar" aria-label="GitAnimals actions">
         <span class="title">@${safeUsername} · ${escapeHtml(viewMode)}</span>
         <a class="button primary" href="command:gitanimals.refresh" title="Refresh">Refresh</a>
-        <a class="button" href="command:gitanimals.minimize" title="Minimize">_</a>
+        <a class="button" href="command:${minimized ? 'gitanimals.showCompanion' : 'gitanimals.minimize'}" title="${minimized ? 'Show' : 'Minimize'}">${minimized ? 'Show' : '_'}</a>
         <a class="button" href="command:gitanimals.openFarm" title="Open full view">Open</a>
         <a class="button" href="command:gitanimals.openSettings" title="Settings">Settings</a>
       </nav>
@@ -547,9 +614,9 @@ function getCompanionHtml() {
 </html>`;
 }
 
-function createImageCard(title, imageUrl) {
+async function createImageCard(title, kind, username) {
   const safeTitle = escapeHtml(title);
-  const safeUrl = escapeHtml(imageUrl);
+  const markup = await getGitAnimalsMarkup(kind, username, 'full');
 
   return `<article class="card">
   <div class="card-header">
@@ -557,20 +624,105 @@ function createImageCard(title, imageUrl) {
     <span class="badge">Live image</span>
   </div>
   <figure>
-    <img src="${safeUrl}" alt="GitAnimals ${safeTitle} image">
+    ${markup}
     <figcaption>If the image does not load, check the configured GitHub username or try the refresh command.</figcaption>
   </figure>
 </article>`;
 }
 
-function createOverlayImage(title, imageUrl) {
+async function createOverlayImage(title, kind, username) {
   const safeTitle = escapeHtml(title);
-  const safeUrl = escapeHtml(imageUrl);
+  const markup = await getGitAnimalsMarkup(kind, username, 'overlay');
 
   return `<figure>
   <figcaption class="label">${safeTitle}</figcaption>
-  <img src="${safeUrl}" alt="GitAnimals ${safeTitle} image">
+  ${markup}
 </figure>`;
+}
+
+async function getGitAnimalsMarkup(kind, username, variant) {
+  const url = buildImageUrl(kind, username);
+
+  try {
+    const svg = await fetchText(url);
+    const themedSvg = transformGitAnimalsSvg(svg);
+    return `<div class="svg-wrap" role="img" aria-label="GitAnimals ${escapeHtml(kind)} image">${themedSvg}</div>`;
+  } catch (error) {
+    const safeUrl = escapeHtml(url);
+    const className = variant === 'overlay' ? '' : ' class="fallback-image"';
+    return `<img${className} src="${safeUrl}" alt="GitAnimals ${escapeHtml(kind)} image">`;
+  }
+}
+
+function transformGitAnimalsSvg(svg) {
+  const theme = getThemeTokens();
+  let transformed = svg
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/\son[a-z]+="[^"]*"/gi, '');
+
+  transformed = transformed.replace(
+    /<rect x="0\.5" y="0\.5" width="599" height="299" rx="4\.5" fill="white"\/>/,
+    `<rect x="0.5" y="0.5" width="599" height="299" rx="10" fill="${theme.surface}" fill-opacity="${theme.surfaceOpacity}" stroke="${theme.border}" />`
+  );
+
+  const textOverride = `<style>
+    [id^="username"] path,
+    [id^="username"] rect,
+    [id^="contributions"] path,
+    [id^="contributions"] rect,
+    [id^="level-tag"] path,
+    [id^="level-tag"] rect,
+    [id^="level-wrap"] path,
+    [id^="level-wrap"] rect {
+      fill: ${theme.ink} !important;
+    }
+  </style>`;
+
+  return transformed.replace(/<svg\b([^>]*)>/, '<svg$1>' + textOverride);
+}
+
+function getThemeTokens() {
+  const kind = vscode.window.activeColorTheme.kind;
+  const isDark = kind === vscode.ColorThemeKind.Dark || kind === vscode.ColorThemeKind.HighContrast;
+
+  if (isDark) {
+    return {
+      surface: '#1f1f23',
+      surfaceOpacity: '0.72',
+      border: '#5f6368',
+      ink: '#ffffff'
+    };
+  }
+
+  return {
+    surface: '#f4f5f7',
+    surfaceOpacity: '0.68',
+    border: '#d6d9df',
+    ink: '#111111'
+  };
+}
+
+function fetchText(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+          response.resume();
+          reject(new Error(`Request failed with status ${response.statusCode}`));
+          return;
+        }
+
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          resolve(body);
+        });
+      })
+      .on('error', reject);
+  });
 }
 
 function escapeHtml(value) {

@@ -16,6 +16,7 @@
   ],
   "activationEvents": [
     "onStartupFinished",
+    "onView:gitanimalsView",
     "onCommand:gitanimals.showCompanion",
     "onCommand:gitanimals.openFarm",
     "onCommand:gitanimals.refresh",
@@ -24,6 +25,15 @@
   ],
   "main": "./extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "gitanimalsView",
+          "name": "GitAnimals"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "gitanimals.showCompanion",
@@ -52,6 +62,23 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "gitanimals.refresh",
+          "when": "view == gitanimalsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "gitanimals.minimize",
+          "when": "view == gitanimalsView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "gitanimals.openSettings",
+          "when": "view == gitanimalsView",
+          "group": "navigation@3"
+        }
+      ],
       "webview/title": [
         {
           "command": "gitanimals.refresh",
@@ -59,23 +86,8 @@
           "group": "navigation@1"
         },
         {
-          "command": "gitanimals.refresh",
-          "when": "webviewId == 'gitanimalsCompanion'",
-          "group": "navigation@1"
-        },
-        {
-          "command": "gitanimals.minimize",
-          "when": "webviewId == 'gitanimalsCompanion'",
-          "group": "navigation@2"
-        },
-        {
           "command": "gitanimals.openSettings",
           "when": "webviewId == 'gitanimals'",
-          "group": "navigation@2"
-        },
-        {
-          "command": "gitanimals.openSettings",
-          "when": "webviewId == 'gitanimalsCompanion'",
           "group": "navigation@2"
         }
       ]
