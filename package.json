@@ -17,7 +17,8 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:gitanimals.openFarm",
-    "onCommand:gitanimals.refresh"
+    "onCommand:gitanimals.refresh",
+    "onCommand:gitanimals.openSettings"
   ],
   "main": "./extension.js",
   "contributes": {
@@ -28,9 +29,29 @@
       },
       {
         "command": "gitanimals.refresh",
-        "title": "GitAnimals: Refresh"
+        "title": "GitAnimals: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gitanimals.openSettings",
+        "title": "GitAnimals: Open Settings",
+        "icon": "$(settings-gear)"
       }
     ],
+    "menus": {
+      "webview/title": [
+        {
+          "command": "gitanimals.refresh",
+          "when": "webviewId == 'gitanimals'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "gitanimals.openSettings",
+          "when": "webviewId == 'gitanimals'",
+          "group": "navigation@2"
+        }
+      ]
+    },
     "configuration": {
       "title": "GitAnimals",
       "properties": {

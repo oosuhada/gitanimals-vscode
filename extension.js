@@ -13,6 +13,10 @@ function activate(context) {
     refreshWebview();
   });
 
+  const openSettingsCommand = vscode.commands.registerCommand('gitanimals.openSettings', () => {
+    vscode.commands.executeCommand('workbench.action.openSettings', '@ext:oosuhada.gitanimals-vscode');
+  });
+
   const configurationWatcher = vscode.workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration('gitanimals')) {
       refreshWebview();
@@ -22,11 +26,11 @@ function activate(context) {
 
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.text = '🐾 GitAnimals';
-  statusBarItem.tooltip = 'Open GitAnimals';
+  statusBarItem.tooltip = createStatusBarTooltip();
   statusBarItem.command = 'gitanimals.openFarm';
   statusBarItem.show();
 
-  context.subscriptions.push(openCommand, refreshCommand, configurationWatcher, statusBarItem);
+  context.subscriptions.push(openCommand, refreshCommand, openSettingsCommand, configurationWatcher, statusBarItem);
   resetAutoRefresh();
 }
 
@@ -47,6 +51,7 @@ function openFarm(context) {
     vscode.ViewColumn.One,
     {
       enableScripts: false,
+      enableCommandUris: true,
       retainContextWhenHidden: true
     }
   );
@@ -64,6 +69,16 @@ function refreshWebview() {
   }
 
   panel.webview.html = getWebviewHtml();
+}
+
+function createStatusBarTooltip() {
+  const tooltip = new vscode.MarkdownString(undefined, true);
+  tooltip.isTrusted = true;
+  tooltip.supportHtml = false;
+  tooltip.appendMarkdown('**GitAnimals**\n\n');
+  tooltip.appendMarkdown('Click to open your GitAnimals farm and contribution line.\n\n');
+  tooltip.appendMarkdown('Commands: `GitAnimals: Open Farm`, `GitAnimals: Refresh`, `GitAnimals: Open Settings`.');
+  return tooltip;
 }
 
 function resetAutoRefresh() {
@@ -147,6 +162,10 @@ function getWebviewHtml() {
       padding-bottom: 18px;
     }
 
+    .intro {
+      max-width: 640px;
+    }
+
     h1 {
       margin: 0 0 6px;
       font-size: 28px;
@@ -165,11 +184,51 @@ function getWebviewHtml() {
       font-size: 14px;
     }
 
+    .summary {
+      margin-top: 12px;
+      max-width: 560px;
+      color: var(--vscode-descriptionForeground);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
     .hint {
       max-width: 280px;
       text-align: right;
       font-size: 12px;
       line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      border-radius: 4px;
+      padding: 0 12px;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .action.secondary {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px var(--vscode-panel-border);
+      color: var(--vscode-editor-foreground);
+    }
+
+    .action:hover {
+      background: var(--vscode-button-hoverBackground);
     }
 
     .grid {
@@ -248,17 +307,28 @@ function getWebviewHtml() {
         margin-top: 12px;
         text-align: left;
       }
+
+      .actions {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
   <main class="page">
     <header class="header">
-      <div>
+      <div class="intro">
         <h1>GitAnimals</h1>
         <div class="username">@${safeUsername}</div>
+        <div class="summary">View your GitAnimals farm and contribution line inside VS Code. Use the buttons here, the tab title actions, the Command Palette, or the Status Bar item.</div>
       </div>
-      <div class="hint">Use “GitAnimals: Refresh” from the Command Palette to redraw this view. Auto refresh runs every ${autoRefreshIntervalMinutes} minute(s).</div>
+      <div>
+        <div class="hint">Auto refresh runs every ${autoRefreshIntervalMinutes} minute(s). Manual refresh redraws the images with cache busting.</div>
+        <nav class="actions" aria-label="GitAnimals actions">
+          <a class="action" href="command:gitanimals.refresh" title="Redraw GitAnimals images">Refresh Now</a>
+          <a class="action secondary" href="command:gitanimals.openSettings" title="Open GitAnimals settings">Settings</a>
+        </nav>
+      </div>
     </header>
 
     <section class="grid" aria-label="GitAnimals views">
