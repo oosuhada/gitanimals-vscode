@@ -99,7 +99,7 @@
         },
         "gitanimals.usernameScale": {
           "type": "number",
-          "default": 0.72,
+          "default": 0.62,
           "minimum": 0.3,
           "maximum": 1.5,
           "description": "Scale for the visible farm username label."
