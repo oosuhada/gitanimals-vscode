@@ -97,6 +97,33 @@
           "default": "farm",
           "description": "Which GitAnimals view to show."
         },
+        "gitanimals.usernameScale": {
+          "type": "number",
+          "default": 0.72,
+          "minimum": 0.3,
+          "maximum": 1.5,
+          "description": "Scale for the visible farm username label."
+        },
+        "gitanimals.showUsername": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the visible farm username label."
+        },
+        "gitanimals.showContributions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the visible farm total contributions label."
+        },
+        "gitanimals.imageScaleMode": {
+          "type": "string",
+          "enum": [
+            "fill-width",
+            "fit",
+            "fixed"
+          ],
+          "default": "fill-width",
+          "description": "How the GitAnimals image scales inside the Explorer view."
+        },
         "gitanimals.autoRefreshIntervalMinutes": {
           "type": "number",
           "default": 10,

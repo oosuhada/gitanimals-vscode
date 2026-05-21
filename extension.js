@@ -252,10 +252,18 @@ function getConfiguration() {
   const config = vscode.workspace.getConfiguration('gitanimals');
   const configuredViewMode = config.get('viewMode', 'farm') || 'farm';
   const viewMode = configuredViewMode === 'line' ? 'line' : 'farm';
+  const configuredScaleMode = config.get('imageScaleMode', 'fill-width') || 'fill-width';
+  const imageScaleMode = ['fill-width', 'fit', 'fixed'].includes(configuredScaleMode)
+    ? configuredScaleMode
+    : 'fill-width';
 
   return {
     username: config.get('username', 'oosuhada') || 'oosuhada',
     viewMode,
+    usernameScale: clampNumber(config.get('usernameScale', 0.72), 0.3, 1.5, 0.72),
+    showUsername: config.get('showUsername', true) !== false,
+    showContributions: config.get('showContributions', true) !== false,
+    imageScaleMode,
     autoRefreshIntervalMinutes: Math.max(1, config.get('autoRefreshIntervalMinutes', 10) || 10)
   };
 }
@@ -497,10 +505,11 @@ async function getWebviewHtml() {
 }
 
 async function getCompanionHtml(minimized) {
-  const { username, viewMode } = getConfiguration();
+  const { username, viewMode, imageScaleMode } = getConfiguration();
   const overlayImage = minimized
     ? ''
     : await createOverlayImage(viewMode === 'farm' ? 'farms' : 'lines', username);
+  const scaleClass = `scale-${imageScaleMode}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -571,6 +580,23 @@ async function getCompanionHtml(minimized) {
       display: block;
       width: 100%;
       height: auto;
+    }
+
+    .scale-fill-width .svg-wrap svg {
+      width: 100%;
+      max-width: none;
+      max-height: none;
+    }
+
+    .scale-fit .svg-wrap svg {
+      width: 100%;
+      max-height: 100vh;
+      object-fit: contain;
+    }
+
+    .scale-fixed .svg-wrap svg {
+      width: 600px;
+      max-width: 100%;
       max-height: 100vh;
     }
 
@@ -584,7 +610,7 @@ async function getCompanionHtml(minimized) {
   </style>
 </head>
 <body>
-  <main class="stage">
+  <main class="stage ${scaleClass}">
     <section class="overlay" aria-label="GitAnimals overlay">
       <div class="images">
         ${overlayImage}
@@ -624,7 +650,7 @@ async function getGitAnimalsMarkup(kind, username, variant) {
 
   try {
     const svg = await fetchText(url);
-    const themedSvg = transformGitAnimalsSvg(svg);
+    const themedSvg = transformGitAnimalsSvg(svg, getConfiguration());
     return `<div class="svg-wrap" role="img" aria-label="GitAnimals ${escapeHtml(kind)} image">${themedSvg}</div>`;
   } catch (error) {
     const safeUrl = escapeHtml(url);
@@ -633,7 +659,7 @@ async function getGitAnimalsMarkup(kind, username, variant) {
   }
 }
 
-function transformGitAnimalsSvg(svg) {
+function transformGitAnimalsSvg(svg, options) {
   let transformed = svg
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/\son[a-z]+="[^"]*"/gi, '');
@@ -646,6 +672,22 @@ function transformGitAnimalsSvg(svg) {
   transformed = transformed.replace(
     /<rect x="0\.5" y="0\.5" width="599" height="299" rx="4\.5" stroke="#D9D9D9" fill="none"\/>/g,
     ''
+  );
+
+  transformed = transformFarmLabel(
+    transformed,
+    'username',
+    'translate(15, 15)',
+    options.usernameScale,
+    options.showUsername
+  );
+
+  transformed = transformFarmLabel(
+    transformed,
+    'commit',
+    'translate(15, 266)',
+    1,
+    options.showContributions
   );
 
   const textOverride = `<style>
@@ -669,6 +711,26 @@ function transformGitAnimalsSvg(svg) {
   </style>`;
 
   return transformed.replace(/<svg\b([^>]*)>/, '<svg$1>' + textOverride);
+}
+
+function transformFarmLabel(svg, id, translate, scale, visible) {
+  const display = visible ? '' : ' style="display:none;"';
+  const transform = visible ? `${translate} scale(${scale})` : translate;
+  const pattern = new RegExp(`<g id="${id}" transform="${escapeRegExp(translate)}">`);
+  return svg.replace(pattern, `<g id="${id}" transform="${transform}"${display}>`);
+}
+
+function clampNumber(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function fetchText(url) {

@@ -19,6 +19,10 @@ VS Code does not expose an official API for arbitrary HTML overlays on top of an
 {
   "gitanimals.username": "oosuhada",
   "gitanimals.viewMode": "farm",
+  "gitanimals.usernameScale": 0.72,
+  "gitanimals.showUsername": true,
+  "gitanimals.showContributions": true,
+  "gitanimals.imageScaleMode": "fill-width",
   "gitanimals.autoRefreshIntervalMinutes": 10
 }
 ```
