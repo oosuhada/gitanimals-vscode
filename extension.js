@@ -1,10 +1,15 @@
 const vscode = require('vscode');
 
 let panel;
+let companionPanel;
 let statusBarItem;
 let refreshTimer;
 
 function activate(context) {
+  const showCompanionCommand = vscode.commands.registerCommand('gitanimals.showCompanion', () => {
+    showCompanion(context);
+  });
+
   const openCommand = vscode.commands.registerCommand('gitanimals.openFarm', () => {
     openFarm(context);
   });
@@ -27,10 +32,17 @@ function activate(context) {
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.text = '🐾 GitAnimals';
   statusBarItem.tooltip = createStatusBarTooltip();
-  statusBarItem.command = 'gitanimals.openFarm';
+  statusBarItem.command = 'gitanimals.showCompanion';
   statusBarItem.show();
 
-  context.subscriptions.push(openCommand, refreshCommand, openSettingsCommand, configurationWatcher, statusBarItem);
+  context.subscriptions.push(
+    showCompanionCommand,
+    openCommand,
+    refreshCommand,
+    openSettingsCommand,
+    configurationWatcher,
+    statusBarItem
+  );
   resetAutoRefresh();
 }
 
@@ -63,12 +75,39 @@ function openFarm(context) {
   refreshWebview();
 }
 
-function refreshWebview() {
-  if (!panel) {
+function showCompanion(context) {
+  if (companionPanel) {
+    companionPanel.reveal(vscode.ViewColumn.Beside, true);
+    refreshWebview();
     return;
   }
 
-  panel.webview.html = getWebviewHtml();
+  companionPanel = vscode.window.createWebviewPanel(
+    'gitanimalsCompanion',
+    'GitAnimals Companion',
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: false,
+      enableCommandUris: true,
+      retainContextWhenHidden: true
+    }
+  );
+
+  companionPanel.onDidDispose(() => {
+    companionPanel = undefined;
+  }, null, context.subscriptions);
+
+  refreshWebview();
+}
+
+function refreshWebview() {
+  if (panel) {
+    panel.webview.html = getWebviewHtml();
+  }
+
+  if (companionPanel) {
+    companionPanel.webview.html = getCompanionHtml();
+  }
 }
 
 function createStatusBarTooltip() {
@@ -76,8 +115,8 @@ function createStatusBarTooltip() {
   tooltip.isTrusted = true;
   tooltip.supportHtml = false;
   tooltip.appendMarkdown('**GitAnimals**\n\n');
-  tooltip.appendMarkdown('Click to open your GitAnimals farm and contribution line.\n\n');
-  tooltip.appendMarkdown('Commands: `GitAnimals: Open Farm`, `GitAnimals: Refresh`, `GitAnimals: Open Settings`.');
+  tooltip.appendMarkdown('Click to show the companion view beside your editor.\n\n');
+  tooltip.appendMarkdown('Commands: `GitAnimals: Show Companion`, `GitAnimals: Open Full View`, `GitAnimals: Refresh`, `GitAnimals: Open Settings`.');
   return tooltip;
 }
 
@@ -320,7 +359,7 @@ function getWebviewHtml() {
       <div class="intro">
         <h1>GitAnimals</h1>
         <div class="username">@${safeUsername}</div>
-        <div class="summary">View your GitAnimals farm and contribution line inside VS Code. Use the buttons here, the tab title actions, the Command Palette, or the Status Bar item.</div>
+        <div class="summary">View your GitAnimals farm and contribution line inside VS Code. Status Bar opens the compact companion view; this full view is for a larger look.</div>
       </div>
       <div>
         <div class="hint">Auto refresh runs every ${autoRefreshIntervalMinutes} minute(s). Manual refresh redraws the images with cache busting.</div>
@@ -333,6 +372,158 @@ function getWebviewHtml() {
 
     <section class="grid" aria-label="GitAnimals views">
       ${cards.join('\n      ')}
+    </section>
+  </main>
+</body>
+</html>`;
+}
+
+function getCompanionHtml() {
+  const { username, viewMode, autoRefreshIntervalMinutes } = getConfiguration();
+  const safeUsername = escapeHtml(username);
+  const images = [];
+
+  if (viewMode === 'farm' || viewMode === 'both') {
+    images.push(createCompanionImage('Farm', buildImageUrl('farms', username)));
+  }
+
+  if (viewMode === 'line' || viewMode === 'both') {
+    images.push(createCompanionImage('Line', buildImageUrl('lines', username)));
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://render.gitanimals.org; style-src 'unsafe-inline';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitAnimals Companion</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+    }
+
+    .companion {
+      box-sizing: border-box;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .top {
+      margin-bottom: auto;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      padding-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .meta,
+    .help,
+    figcaption {
+      color: var(--vscode-descriptionForeground);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .meta {
+      margin-top: 4px;
+    }
+
+    .help {
+      margin-top: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      border-radius: 4px;
+      padding: 0 10px;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .action.secondary {
+      background: transparent;
+      box-shadow: inset 0 0 0 1px var(--vscode-panel-border);
+      color: var(--vscode-editor-foreground);
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    figure {
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 8px;
+      background: var(--vscode-sideBar-background);
+    }
+
+    .image-wrap {
+      padding: 10px;
+      background: var(--vscode-editor-background);
+    }
+
+    img {
+      display: block;
+      width: 100%;
+      max-height: 42vh;
+      object-fit: contain;
+      border-radius: 6px;
+    }
+
+    figcaption {
+      border-top: 1px solid var(--vscode-panel-border);
+      padding: 8px 10px;
+    }
+  </style>
+</head>
+<body>
+  <main class="companion">
+    <section class="top">
+      <h1>GitAnimals Companion</h1>
+      <div class="meta">@${safeUsername} · ${escapeHtml(viewMode)} view</div>
+      <div class="help">This companion stays beside your editor. Click the Status Bar item again to reveal it, or use the full view for a larger farm.</div>
+      <nav class="actions" aria-label="GitAnimals actions">
+        <a class="action" href="command:gitanimals.refresh">Refresh</a>
+        <a class="action secondary" href="command:gitanimals.openFarm">Full View</a>
+        <a class="action secondary" href="command:gitanimals.openSettings">Settings</a>
+      </nav>
+    </section>
+
+    <section class="stack" aria-label="GitAnimals companion images">
+      ${images.join('\n      ')}
     </section>
   </main>
 </body>
@@ -353,6 +544,18 @@ function createImageCard(title, imageUrl) {
     <figcaption>If the image does not load, check the configured GitHub username or try the refresh command.</figcaption>
   </figure>
 </article>`;
+}
+
+function createCompanionImage(title, imageUrl) {
+  const safeTitle = escapeHtml(title);
+  const safeUrl = escapeHtml(imageUrl);
+
+  return `<figure>
+  <div class="image-wrap">
+    <img src="${safeUrl}" alt="GitAnimals ${safeTitle} image">
+  </div>
+  <figcaption>${safeTitle} · refresh from the button above or the tab title action.</figcaption>
+</figure>`;
 }
 
 function escapeHtml(value) {
