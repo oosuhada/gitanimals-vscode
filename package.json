@@ -135,6 +135,6 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run lint",
-    "lint": "node -e \"console.log('No lint configured')\""
+    "lint": "node --check extension.js"
   }
 }
