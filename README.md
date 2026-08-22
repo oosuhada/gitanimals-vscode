@@ -65,3 +65,7 @@ npm install -g @vscode/vsce
 vsce package
 code --install-extension gitanimals-vscode-0.0.1.vsix
 ```
+
+## Topics
+
+[`developer-tools`](https://github.com/topics/developer-tools) · [`gitanimals`](https://github.com/topics/gitanimals) · [`github`](https://github.com/topics/github) · [`javascript`](https://github.com/topics/javascript) · [`vscode-extension`](https://github.com/topics/vscode-extension) · [`webview`](https://github.com/topics/webview)
